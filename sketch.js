@@ -6,7 +6,7 @@ let insertInput;
 let insertButton;
 // eslint-disable-next-line no-unused-vars
 function setup() {
-  tree = new BTree(3);
+  tree = new BTree(2);
   let insertTo = 30;
   for (let i = 0; i < insertTo; i++) {
     tree.insert(Math.floor(Math.random() * 100));
@@ -91,7 +91,7 @@ class BTree {
     right.parent = this;
     this.childs[this.childs.findIndex((c) => c === child)] = left;
     this.childs.splice(i + 1, 0, right);
-    if (this.values.length === this.degree) {
+    if (this.values.length === this.degree * 2) {
       let left = new BTree(this.degree, this);
       let right = new BTree(this.degree, this);
       let middle = Math.floor(this.degree / 2);
@@ -141,7 +141,7 @@ class BTree {
         return a - b;
       });
 
-      if (this.values.length === this.degree) {
+      if (this.values.length === this.degree * 2) {
         let left = new BTree(this.degree, this);
         let right = new BTree(this.degree, this);
         let middle = Math.floor(this.degree / 2);
@@ -166,7 +166,59 @@ class BTree {
   }
 
   delete(value) {
-    window.alert('Work in progress');
+    if(!this.values.includes(value)) {
+      for(let i =0; i< this.childs.length;i++) {
+        if(this.childs[i].delete(value)) break;
+      }
+    }
+
+    var index = this.values.findIndex(v => v === value);
+    // leave node
+    if(this.childs.length === 0)  {
+      // delete the value from node if have enought keys.
+      if(this.values.length >= this.degree) {
+        this.values.splice(index, 1)
+        return true;
+      }
+      else {
+        // find the imediate sibling that have more than degree keys
+        const parent = this.parent
+        const index = parent.childs.findIndex(v => v=== this)
+        const leftChild = parent.childs[index-1]
+        const rightChild = parent.childs[index+1]
+        // TODO: continue
+      }
+    }
+
+
+    // internal node
+    if(this.values.length === this.degree - 1) {
+      // TODO: continue
+    }
+
+    const leftChild = this.childs[index]
+    const rightChild = this.childs[index+1]
+    if(leftChild.values.length >= this.degree) {
+      leftChild.delete(leftChild.values[0])
+      this.values[index] = leftChild.values[0]
+    }
+    else 
+      if(rightChild.values.length >= this.degree) {
+      rightChild.delete(rightChild.values[0])
+      this.values[index] = rightChild.values[0]
+      return true;
+    }
+    else {
+      // merge value and right to left
+      leftChild.values = [...leftChild.values, value, rightChild.values ]
+
+      // remove value at current node
+      this.values.splice(index, 1)
+      // remove right child at current node
+      this.childs.splice(index+1, 1)
+      return leftChild.delete(value)
+    }
+
   }
 
   draw(x, y, size = 10, hsplit = 10, vsplit = 30) {
