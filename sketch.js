@@ -7,7 +7,7 @@ let insertButton;
 // eslint-disable-next-line no-unused-vars
 function setup() {
   tree = new BTree(2);
-  let insertTo = 30;
+  let insertTo = 37;
   for (let i = 0; i < insertTo; i++) {
     tree.insert(Math.floor(Math.random() * 100));
   }
@@ -65,7 +65,7 @@ class BTree {
   constructor(degree, parent) {
     this.degree = degree;
     this.parent = parent;
-    this.values = [];
+    this.keys = [];
     this.childs = [];
   }
 
@@ -81,148 +81,116 @@ class BTree {
     );
   }
 
-  divide(left, right, middle, child) {
-    let i = 0;
-    while (middle > this.values[i] && i < this.values.length) {
-      i += 1;
+  split() {
+    if (this.keys.length !== this.degree * 2 - 1) {
+      return;
     }
-    this.values.splice(i, 0, middle);
-    left.parent = this;
-    right.parent = this;
-    this.childs[this.childs.findIndex((c) => c === child)] = left;
-    this.childs.splice(i + 1, 0, right);
-    if (this.values.length === this.degree * 2) {
-      let left = new BTree(this.degree, this);
-      let right = new BTree(this.degree, this);
-      let middle = Math.floor(this.degree / 2);
-      for (i = 0; i < this.values.length; i++) {
-        if (i < middle) {
-          left.values.push(this.values[i]);
-          this.childs[i].parent = left;
-          left.childs.push(this.childs[i]);
-        }
-
-        if (i === middle) {
-          this.childs[i].parent = left;
-          left.childs.push(this.childs[i]);
-        }
-
-        if (i > middle) {
-          right.values.push(this.values[i]);
-          right.childs.push(this.childs[i]);
-          this.childs[i].parent = right;
-        }
-      }
-      right.childs.push(this.childs[i]);
-      this.childs[i].parent = right;
-      middle = this.values[middle];
-      if (this.parent) {
-        this.parent.divide(left, right, middle, this);
+    const medianIndex = this.degree - 1;
+    const leftChild = new BTree(this.degree, this);
+    const rightChild = new BTree(this.degree, this);
+    this.childs.forEach((child, index) => {
+      if (index <= medianIndex) {
+        child.parent = leftChild;
+        leftChild.childs.push(child);
       } else {
-        right.parent = this;
-        left.parent = this;
-        this.values = [middle];
-        this.childs = [left, right];
+        child.parent = rightChild;
+        rightChild.childs.push(child);
       }
+    });
+
+    this.keys.forEach((key, index) => {
+      if (index < medianIndex) {
+        leftChild.keys.push(key);
+      } else if (index > medianIndex) {
+        rightChild.keys.push(key);
+      }
+    });
+
+    const medianKey = this.keys[medianIndex];
+    const parent = this.parent;
+    if (!parent) {
+      this.keys = [medianKey];
+      this.childs = [leftChild, rightChild];
+    } else {
+      rightChild.parent = parent;
+      leftChild.parent = parent;
+      const childIndex = parent.childs.findIndex((c) => c == this);
+      this.parent.childs[childIndex] = leftChild;
+      this.parent.childs.splice(childIndex + 1, 0, rightChild);
+      let i;
+      for (i = 0; i < parent.keys.length; i++) {
+        if (parent.keys[i] >= medianKey) {
+          break;
+        }
+      }
+      this.parent.keys.splice(i, 0, medianKey);
+
+      // if (parent.keys.length === this.degree * 2 - 1) {
+      //   parent.split();
+      // }
     }
+    return { medianKey, leftChild, rightChild };
   }
 
   insert(value) {
-    let i = 0;
-    while (value > this.values[i] && i < this.values.length) {
-      i += 1;
-    }
-
-    if (this.childs[i]) {
-      this.childs[i].insert(value);
+    if (this.keys.length === this.degree * 2 - 1) {
+      const { medianKey, rightChild, leftChild } = this.split();
+      if (value > medianKey) {
+        rightChild.insert(value);
+      } else {
+        leftChild.insert(value);
+      }
     } else {
-      this.values.push(value);
-      this.values.sort(function(a, b) {
-        return a - b;
-      });
-
-      if (this.values.length === this.degree * 2) {
-        let left = new BTree(this.degree, this);
-        let right = new BTree(this.degree, this);
-        let middle = Math.floor(this.degree / 2);
-        for (i = 0; i < this.values.length; i++) {
-          if (i < middle) {
-            left.insert(this.values[i]);
-          }
-
-          if (i > middle) {
-            right.insert(this.values[i]);
-          }
-        }
-        middle = this.values[middle];
-        if (this.parent) {
-          this.parent.divide(left, right, middle, this);
-        } else {
-          this.values = [middle];
-          this.childs = [left, right];
-        }
+      let i = 0;
+      while (value > this.keys[i] && i < this.keys.length) {
+        i += 1;
+      }
+      if (this.childs[i]) {
+        this.childs[i].insert(value);
+      } else {
+        this.keys.push(value);
+        this.keys.sort(function(a, b) {
+          return a - b;
+        });
       }
     }
   }
 
   delete(value) {
-    if(!this.values.includes(value)) {
-      for(let i =0; i< this.childs.length;i++) {
-        if(this.childs[i].delete(value)) break;
+    if (this.keys.includes(value)) {
+      console.log(this)
+      const index = this.keys.findIndex((v) => v === value);
+      if (!this.childs) {
+        this.keys.splice(index, 1);
+      } else {
+        const leftChild = this.childs[index];
+        const rightChild = this.childs[index + 1];
+        if (leftChild.keys.length >= this.degree) {
+          this.keys[index] = leftChild.keys[0];
+          leftChild.delete(leftChild.keys[0]);
+        } else if (rightChild.keys.length >= this.degree) {
+          this.keys[index] = rightChild.keys[0];
+          rightChild.delete(rightChild.keys[0]);
+        }
       }
-    }
-
-    var index = this.values.findIndex(v => v === value);
-    // leave node
-    if(this.childs.length === 0)  {
-      // delete the value from node if have enought keys.
-      if(this.values.length >= this.degree) {
-        this.values.splice(index, 1)
-        return true;
-      }
-      else {
-        // find the imediate sibling that have more than degree keys
+    } else {
+      let i = 0;
+      while (this.keys[i] < value) i += 1;
+      const selectedChild = this.childs[i];
+      if (selectedChild.keys.length === this.degree - 1) {
         const parent = this.parent
-        const index = parent.childs.findIndex(v => v=== this)
-        const leftChild = parent.childs[index-1]
-        const rightChild = parent.childs[index+1]
-        // TODO: continue
+        const thisIndex = parent.childs.findIndex(c => c=== this)
+        const leftSibling = parent.childs[thisIndex - 1]
+        const rightSibling = parent.childs[thisIndex + 1]
+        // todo: continue
+      } else {
+        selectedChild.delete(value);
       }
     }
-
-
-    // internal node
-    if(this.values.length === this.degree - 1) {
-      // TODO: continue
-    }
-
-    const leftChild = this.childs[index]
-    const rightChild = this.childs[index+1]
-    if(leftChild.values.length >= this.degree) {
-      leftChild.delete(leftChild.values[0])
-      this.values[index] = leftChild.values[0]
-    }
-    else 
-      if(rightChild.values.length >= this.degree) {
-      rightChild.delete(rightChild.values[0])
-      this.values[index] = rightChild.values[0]
-      return true;
-    }
-    else {
-      // merge value and right to left
-      leftChild.values = [...leftChild.values, value, rightChild.values ]
-
-      // remove value at current node
-      this.values.splice(index, 1)
-      // remove right child at current node
-      this.childs.splice(index+1, 1)
-      return leftChild.delete(value)
-    }
-
   }
 
   draw(x, y, size = 10, hsplit = 10, vsplit = 30) {
-    this.values.map((value, index) => {
+    this.keys.map((value, index) => {
       const valX = x + index * size;
       stroke(255);
       square(valX, y, size);
@@ -230,7 +198,7 @@ class BTree {
       text(value, valX + size / 2, y + size / 2);
     });
 
-    let currentX = x + size * this.values.length + hsplit;
+    let currentX = x + size * this.keys.length + hsplit;
     this.childs.map((child, index) => {
       stroke(255);
       line(x + size * index, y + size, currentX, y + size + vsplit);
