@@ -4,10 +4,11 @@ let deleteInput;
 let deleteButton;
 let insertInput;
 let insertButton;
+let currentNode = null
 // eslint-disable-next-line no-unused-vars
 function setup() {
   tree = new BTree(2);
-  let insertTo = 37;
+  let insertTo = 8;
   for (let i = 0; i < insertTo; i++) {
     tree.insert(Math.floor(Math.random() * 100));
   }
@@ -43,6 +44,7 @@ function deleteButtonPressed() {
   const value = parseInt(deleteInput.value());
   if (!Number.isNaN(value)) {
     tree.delete(value);
+    tree.log()
   }
 }
 
@@ -157,34 +159,91 @@ class BTree {
   }
 
   delete(value) {
+    currentNode = this;
     if (this.keys.includes(value)) {
-      console.log(this)
       const index = this.keys.findIndex((v) => v === value);
-      if (!this.childs) {
+      if (this.childs.length === 0) {
         this.keys.splice(index, 1);
+        return;
       } else {
         const leftChild = this.childs[index];
         const rightChild = this.childs[index + 1];
-        if (leftChild.keys.length >= this.degree) {
-          this.keys[index] = leftChild.keys[0];
-          leftChild.delete(leftChild.keys[0]);
+        if (leftChild && leftChild.keys.length >= this.degree) {
+          this.keys[index] = leftChild.keys[leftChild.keys.length -1];
+          leftChild.delete(leftChild.keys[leftChild.keys.length-1]);
         } else if (rightChild.keys.length >= this.degree) {
           this.keys[index] = rightChild.keys[0];
           rightChild.delete(rightChild.keys[0]);
         }
+        else {
+          leftChild.keys.push(value)
+          rightChild.keys.forEach(key => {
+            leftChild.keys.push(key)
+          });
+          rightChild.childs.forEach(child => {
+            child.parent = leftChild;
+            leftChild.childs.push(child)
+          })
+          this.keys.splice(index, 1)
+          this.childs.splice(index+1, 1)
+        }
       }
     } else {
       let i = 0;
+      if(this.childs.length === 0) {
+        return;
+      }
       while (this.keys[i] < value) i += 1;
       const selectedChild = this.childs[i];
       if (selectedChild.keys.length === this.degree - 1) {
-        const parent = this.parent
-        const thisIndex = parent.childs.findIndex(c => c=== this)
-        const leftSibling = parent.childs[thisIndex - 1]
-        const rightSibling = parent.childs[thisIndex + 1]
-        // todo: continue
+
+        // index of selected child
+        const thisIndex = i
+
+        // the left sibling
+        const leftSibling = this.childs[thisIndex - 1]
+        
+        // the right sibling
+        const rightSibling = this.childs[thisIndex + 1]
+
+        if(leftSibling && leftSibling.keys.length >= this.degree) {
+          selectedChild.keys.unshift(this.keys[thisIndex - 1])
+          this.keys[thisIndex - 1] = leftSibling.keys[leftSibling.keys.length - 1]
+          leftSibling.keys.splice(leftSibling.keys.length - 1, 1)
+          if(leftSibling.childs.length > 0) {
+            const childToMove = leftSibling.childs[leftSibling.childs.length - 1]
+            childToMove.parent = selectedChild;
+          selectedChild.childs.unshift(childToMove)
+          leftSibling.childs.splice(leftSibling.childs.length - 1, 1)
+          }
+        }
+        else if( rightSibling && rightSibling.keys.length >= this.degree) {
+          selectedChild.keys.push(this.keys[thisIndex])
+          this.keys[thisIndex] = rightSibling.keys[0]
+          rightSibling.keys.splice(0, 1)
+          if(rightSibling.childs.length > 0) {
+            const childToMove = rightSibling.childs[0]
+            childToMove.parent = selectedChild;
+          selectedChild.childs.push(childToMove)
+          rightSibling.childs.splice(0, 1)
+          }
+        }
+        else {
+          selectedChild.keys.push(this.keys[thisIndex])
+          this.keys.splice(thisIndex, 1)
+          rightSibling.keys.forEach((key) => {
+            selectedChild.keys.push(key)
+          })
+          this.childs.splice(thisIndex + 1, 1)
+          rightSibling.childs.forEach((child) => {
+            child.parent = selectedChild
+            selectedChild.childs.push(child)
+          })
+        }
+        setTimeout(() => selectedChild.delete(value), 1000);
+        
       } else {
-        selectedChild.delete(value);
+        setTimeout(() => selectedChild.delete(value), 1000);
       }
     }
   }
@@ -193,6 +252,9 @@ class BTree {
     this.keys.map((value, index) => {
       const valX = x + index * size;
       stroke(255);
+      if(this === currentNode) {
+        stroke('red')
+      }
       square(valX, y, size);
       stroke(0);
       text(value, valX + size / 2, y + size / 2);
