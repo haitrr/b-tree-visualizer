@@ -5,6 +5,7 @@ let deleteButton;
 let insertInput;
 let insertButton;
 let currentNode = null;
+const delay = 1000;
 // eslint-disable-next-line no-unused-vars
 function setup() {
   tree = new BTree(2);
@@ -216,7 +217,7 @@ class BTree {
       const index = this.keys.findIndex((v) => v === value);
       if (this.childs.length === 0) {
         console.log('current node is leaf , delete value key');
-        setTimeout(() => this.keys.splice(index, 1), 1000);
+        setTimeout(() => this.keys.splice(index, 1), delay);
         return;
       } else {
         console.log('current node is not leave.');
@@ -229,11 +230,11 @@ class BTree {
         if (leftChild && leftChild.keys.length >= this.degree) {
           console.log('swap value to left child');
           this.keys[index] = leftChild.keys[leftChild.keys.length - 1];
-          setTimeout(() => leftChild.delete(leftChild.keys[leftChild.keys.length - 1]), 1000);
+          setTimeout(() => leftChild.delete(leftChild.keys[leftChild.keys.length - 1]), delay);
         } else if (rightChild.keys.length >= this.degree) {
           console.log('swap value to right child');
           this.keys[index] = rightChild.keys[0];
-          setTimeout(() => rightChild.delete(rightChild.keys[0]), 1000);
+          setTimeout(() => rightChild.delete(rightChild.keys[0]), delay);
         } else {
           console.log('merge right child in to left child');
           leftChild.keys.push(value);
@@ -250,7 +251,7 @@ class BTree {
             this.childs = leftChild.childs;
             this.keys = leftChild.keys;
           }
-          setTimeout(() => leftChild.delete(value), 1000);
+          setTimeout(() => leftChild.delete(value), delay);
         }
       }
     } else {
@@ -342,10 +343,10 @@ class BTree {
             selectedChild.parent = null;
           }
         }
-        setTimeout(() => selectedChild.delete(value), 1000);
+        setTimeout(() => selectedChild.delete(value), delay);
         console.log(' ******** End Step ****');
       } else {
-        setTimeout(() => selectedChild.delete(value), 1000);
+        setTimeout(() => selectedChild.delete(value), delay);
         console.log(' ******** End Step ****');
       }
 
