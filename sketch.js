@@ -6,6 +6,7 @@ let insertInput;
 let insertButton;
 let currentNode = null;
 const delay = 1000;
+let running = false;
 // eslint-disable-next-line no-unused-vars
 function setup() {
   tree = new BTree(2);
@@ -42,6 +43,7 @@ function createDeleteButton() {
 }
 
 function deleteButtonPressed() {
+  if(running) return;
   const value = parseInt(deleteInput.value());
   if (!Number.isNaN(value)) {
     tree.delete(value);
@@ -57,6 +59,7 @@ function draw() {
 }
 
 const insertButtonPressed = () => {
+  if(running) return;
   const value = parseInt(insertInput.value());
   if (!Number.isNaN(value)) {
     tree.insert(value);
@@ -204,8 +207,10 @@ class BTree {
   }
 
   delete(value) {
+    running = true;
     if (!this.verify()) {
       console.error('something went wrong');
+      running = false;
       return;
     }
     currentNode = this;
@@ -218,6 +223,7 @@ class BTree {
       if (this.childs.length === 0) {
         console.log('current node is leaf , delete value key');
         setTimeout(() => this.keys.splice(index, 1), delay);
+        running = false;
         return;
       } else {
         console.log('current node is not leave.');
@@ -259,6 +265,7 @@ class BTree {
       let i = 0;
       if (this.childs.length === 0) {
         console.log('value not found in the tree');
+        running = false;
         return;
       }
       while (this.keys[i] < value) i += 1;
