@@ -4,11 +4,11 @@ let deleteInput;
 let deleteButton;
 let insertInput;
 let insertButton;
-let currentNode = null
+let currentNode = null;
 // eslint-disable-next-line no-unused-vars
 function setup() {
   tree = new BTree(2);
-  let insertTo = 8;
+  let insertTo = 33;
   for (let i = 0; i < insertTo; i++) {
     tree.insert(Math.floor(Math.random() * 100));
   }
@@ -44,7 +44,6 @@ function deleteButtonPressed() {
   const value = parseInt(deleteInput.value());
   if (!Number.isNaN(value)) {
     tree.delete(value);
-    tree.log()
   }
 }
 
@@ -60,6 +59,7 @@ const insertButtonPressed = () => {
   const value = parseInt(insertInput.value());
   if (!Number.isNaN(value)) {
     tree.insert(value);
+    tree.verify();
   }
 };
 
@@ -81,6 +81,8 @@ class BTree {
         2,
       ),
     );
+
+    console.log('------------------');
   }
 
   split() {
@@ -158,93 +160,200 @@ class BTree {
     }
   }
 
+  verify(min, max) {
+    console.log('verifying');
+    this.log();
+    if (this.keys.length < this.degree - 1 || this.keys.length > this.degree * 2 - 1) {
+      console.error('degree - 1 <= keys count < degree*2 - 1');
+      return false;
+    }
+
+    if (
+      (this.childs.length > 1 && this.childs.length < this.keys.length) ||
+      this.childs.length - this.keys.length > 1
+    ) {
+      console.error('childs length are not valid');
+      return false;
+    }
+
+    if (min && this.keys[0] < min) {
+      console.error('key is smaller than min');
+      return false;
+    }
+
+    if (max && this.keys[this.keys.length - 1] > max) {
+      console.error('key is bigger than max');
+      return false;
+    }
+    let current = this.keys[0];
+    for (let i = 0; i < this.keys.length; i++) {
+      if (this.keys[i] < current) {
+        console.error('keys is not sorted');
+        return false;
+      }
+      current = this.keys[i];
+    }
+
+    for (let i = 0; i < this.childs.length; i++) {
+      if (!this.childs[i].verify(this.keys[i - 1] || min, this.keys[i] || max)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   delete(value) {
+    if (!this.verify()) {
+      console.error('something went wrong');
+      return;
+    }
     currentNode = this;
+    console.log('current node');
+    console.log(`value ${value}`);
+    this.log();
     if (this.keys.includes(value)) {
+      console.log('current node contain value');
       const index = this.keys.findIndex((v) => v === value);
       if (this.childs.length === 0) {
-        this.keys.splice(index, 1);
+        console.log('current node is leaf , delete value key');
+        setTimeout(() => this.keys.splice(index, 1), 1000);
         return;
       } else {
+        console.log('current node is not leave.');
         const leftChild = this.childs[index];
+        console.log('left child');
+        leftChild.log();
         const rightChild = this.childs[index + 1];
+        console.log('right child');
+        rightChild.log();
         if (leftChild && leftChild.keys.length >= this.degree) {
-          this.keys[index] = leftChild.keys[leftChild.keys.length -1];
-          leftChild.delete(leftChild.keys[leftChild.keys.length-1]);
+          console.log('swap value to left child');
+          this.keys[index] = leftChild.keys[leftChild.keys.length - 1];
+          setTimeout(() => leftChild.delete(leftChild.keys[leftChild.keys.length - 1]), 1000);
         } else if (rightChild.keys.length >= this.degree) {
+          console.log('swap value to right child');
           this.keys[index] = rightChild.keys[0];
-          rightChild.delete(rightChild.keys[0]);
-        }
-        else {
-          leftChild.keys.push(value)
-          rightChild.keys.forEach(key => {
-            leftChild.keys.push(key)
+          setTimeout(() => rightChild.delete(rightChild.keys[0]), 1000);
+        } else {
+          console.log('merge right child in to left child');
+          leftChild.keys.push(value);
+          rightChild.keys.forEach((key) => {
+            leftChild.keys.push(key);
           });
-          rightChild.childs.forEach(child => {
+          rightChild.childs.forEach((child) => {
             child.parent = leftChild;
-            leftChild.childs.push(child)
-          })
-          this.keys.splice(index, 1)
-          this.childs.splice(index+1, 1)
+            leftChild.childs.push(child);
+          });
+          this.keys.splice(index, 1);
+          this.childs.splice(index + 1, 1);
+          if (this.keys.length === 0) {
+            this.childs = leftChild.childs;
+            this.keys = leftChild.keys;
+          }
+          setTimeout(() => leftChild.delete(value), 1000);
         }
       }
     } else {
+      console.log('current node does not contain value');
       let i = 0;
-      if(this.childs.length === 0) {
+      if (this.childs.length === 0) {
+        console.log('value not found in the tree');
         return;
       }
       while (this.keys[i] < value) i += 1;
       const selectedChild = this.childs[i];
+      console.log('selected child');
+      selectedChild.log();
       if (selectedChild.keys.length === this.degree - 1) {
-
+        console.log('selected child does not have enough keys');
         // index of selected child
-        const thisIndex = i
+        const thisIndex = i;
 
         // the left sibling
-        const leftSibling = this.childs[thisIndex - 1]
-        
-        // the right sibling
-        const rightSibling = this.childs[thisIndex + 1]
+        console.log('left sibling');
+        const leftSibling = this.childs[thisIndex - 1];
+        leftSibling && leftSibling.log();
 
-        if(leftSibling && leftSibling.keys.length >= this.degree) {
-          selectedChild.keys.unshift(this.keys[thisIndex - 1])
-          this.keys[thisIndex - 1] = leftSibling.keys[leftSibling.keys.length - 1]
-          leftSibling.keys.splice(leftSibling.keys.length - 1, 1)
-          if(leftSibling.childs.length > 0) {
-            const childToMove = leftSibling.childs[leftSibling.childs.length - 1]
+        // the right sibling
+        console.log('right sibling');
+        const rightSibling = this.childs[thisIndex + 1];
+        rightSibling && rightSibling.log();
+
+        if (leftSibling && leftSibling.keys.length >= this.degree) {
+          console.log('move key from left sibling');
+          selectedChild.keys.unshift(this.keys[thisIndex - 1]);
+          this.keys[thisIndex - 1] = leftSibling.keys[leftSibling.keys.length - 1];
+          leftSibling.keys.splice(leftSibling.keys.length - 1, 1);
+          if (leftSibling.childs.length > 0) {
+            const childToMove = leftSibling.childs[leftSibling.childs.length - 1];
             childToMove.parent = selectedChild;
-          selectedChild.childs.unshift(childToMove)
-          leftSibling.childs.splice(leftSibling.childs.length - 1, 1)
+            selectedChild.childs.unshift(childToMove);
+            leftSibling.childs.splice(leftSibling.childs.length - 1, 1);
           }
-        }
-        else if( rightSibling && rightSibling.keys.length >= this.degree) {
-          selectedChild.keys.push(this.keys[thisIndex])
-          this.keys[thisIndex] = rightSibling.keys[0]
-          rightSibling.keys.splice(0, 1)
-          if(rightSibling.childs.length > 0) {
-            const childToMove = rightSibling.childs[0]
+        } else if (rightSibling && rightSibling.keys.length >= this.degree) {
+          console.log('move key from right sibling');
+          selectedChild.keys.push(this.keys[thisIndex]);
+          this.keys[thisIndex] = rightSibling.keys[0];
+          rightSibling.keys.splice(0, 1);
+          if (rightSibling.childs.length > 0) {
+            const childToMove = rightSibling.childs[0];
             childToMove.parent = selectedChild;
-          selectedChild.childs.push(childToMove)
-          rightSibling.childs.splice(0, 1)
+            selectedChild.childs.push(childToMove);
+            rightSibling.childs.splice(0, 1);
           }
-        }
-        else {
-          selectedChild.keys.push(this.keys[thisIndex])
-          this.keys.splice(thisIndex, 1)
-          rightSibling.keys.forEach((key) => {
-            selectedChild.keys.push(key)
-          })
-          this.childs.splice(thisIndex + 1, 1)
-          rightSibling.childs.forEach((child) => {
-            child.parent = selectedChild
-            selectedChild.childs.push(child)
-          })
+        } else {
+          console.log('both left and right sibling does not have enough key');
+          // move a key to child to become median
+          if (rightSibling) {
+            selectedChild.keys.push(this.keys[thisIndex]);
+            this.keys.splice(thisIndex, 1);
+          } else {
+            selectedChild.keys.unshift(this.keys[thisIndex - 1]);
+            this.keys.splice(thisIndex - 1, 1);
+          }
+          if (rightSibling) {
+            console.log('merge right sibling');
+            rightSibling.keys.forEach((key) => {
+              selectedChild.keys.push(key);
+            });
+            this.childs.splice(thisIndex + 1, 1);
+            rightSibling.childs.forEach((child) => {
+              child.parent = selectedChild;
+              selectedChild.childs.push(child);
+            });
+          } else if (leftSibling) {
+            console.log('merge left sibling');
+            for (let i = leftSibling.keys.length - 1; i > -1; i--) {
+              selectedChild.keys.unshift(leftSibling.keys[i]);
+            }
+
+            this.childs.splice(thisIndex - 1, 1);
+            for (let i = leftSibling.childs.length - 1; i > -1; i--) {
+              leftSibling.childs[i].parent = selectedChild;
+              selectedChild.childs.unshift(leftSibling.childs[i]);
+            }
+          }
+
+          if (this.keys.length === 0) {
+            console.log('this node have no keys left');
+            console.log('make it the selected child');
+            this.keys = selectedChild.keys;
+            this.childs = selectedChild.childs;
+            selectedChild.parent = null;
+          }
         }
         setTimeout(() => selectedChild.delete(value), 1000);
-        
+        console.log(' ******** End Step ****');
       } else {
         setTimeout(() => selectedChild.delete(value), 1000);
+        console.log(' ******** End Step ****');
       }
+
+      if (!this.verify()) {
+        console.error('something went wrong');
+        return;
+      }
+      console.log(' ******** End Step ****');
     }
   }
 
@@ -252,8 +361,8 @@ class BTree {
     this.keys.map((value, index) => {
       const valX = x + index * size;
       stroke(255);
-      if(this === currentNode) {
-        stroke('red')
+      if (this === currentNode) {
+        stroke('red');
       }
       square(valX, y, size);
       stroke(0);
