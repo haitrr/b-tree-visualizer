@@ -261,6 +261,22 @@ class BTree {
     }
     return true;
   }
+  
+  // get max predecessor of a key at index
+  getMax() {
+    if(this.childs.length !== 0) {
+      return this.childs[this.childs.length - 1].getMax()
+    }
+    return this.keys[this.keys.length - 1]
+  }
+
+  // get min
+  getMin() {
+    if(this.childs.length !== 0) {
+      return this.childs[0].getMin()
+    }
+    return this.keys[0]
+  }
 
   // make sure that every node that we want to call delete upon have atleast degree keys
   // so after delete a key the number of keys is not smaller than degree - 1
@@ -293,12 +309,14 @@ class BTree {
         rightChild.log();
         if (leftChild && leftChild.keys.length >= this.degree) {
           console.log('swap value to left child');
-          this.keys[index] = leftChild.keys[leftChild.keys.length - 1];
-          setTimeout(() => leftChild.delete(leftChild.keys[leftChild.keys.length - 1]), delay);
+          const toSwap = leftChild.getMax()
+          this.keys[index] = toSwap;
+          setTimeout(() => leftChild.delete(toSwap), delay);
         } else if (rightChild.keys.length >= this.degree) {
           console.log('swap value to right child');
-          this.keys[index] = rightChild.keys[0];
-          setTimeout(() => rightChild.delete(rightChild.keys[0]), delay);
+          const toSwap = rightChild.getMin()
+          this.keys[index] = toSwap;
+          setTimeout(() => rightChild.delete(toSwap), delay);
         } else {
           console.log('merge right child in to left child');
           leftChild.keys.push(value);
