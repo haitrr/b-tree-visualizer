@@ -4,8 +4,10 @@ let deleteInput;
 let deleteButton;
 let insertInput;
 let insertButton;
+let delayInput;
+let setDelayButton;
 let currentNode = null;
-const delay = 1000;
+let delay = 1000;
 let running = false;
 // eslint-disable-next-line no-unused-vars
 function setup() {
@@ -27,6 +29,28 @@ function setup() {
   insertButton.mousePressed(insertButtonPressed);
   createDeleteInput();
   createDeleteButton();
+  createDelaySettingInput();
+  createDelaySettingButton();
+}
+
+function createDelaySettingButton() {
+  setDelayButton = createButton('Set delay');
+  setDelayButton.position(500, 20);
+  setDelayButton.size(100)
+  setDelayButton.mousePressed(setDelayButtonPressed)
+}
+
+function setDelayButtonPressed() {
+  const value = parseInt(delayInput.value());
+  if (!Number.isNaN(value)) {
+    delay = value;
+  }
+}
+
+function createDelaySettingInput() {
+  delayInput = createInput();
+  delayInput.position(390, 20);
+  delayInput.size(100);
 }
 
 function createDeleteInput() {
@@ -206,6 +230,8 @@ class BTree {
     return true;
   }
 
+  // make sure that every node that we want to call delete upon have atleast degree keys
+  // so after delete a key the number of keys is not smaller than degree - 1
   delete(value) {
     running = true;
     if (!this.verify()) {
