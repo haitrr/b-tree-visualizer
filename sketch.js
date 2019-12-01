@@ -12,7 +12,7 @@ let running = false;
 // eslint-disable-next-line no-unused-vars
 function setup() {
   tree = new BTree(2);
-  let insertTo = 33;
+  let insertTo = 22;
   for (let i = 0; i < insertTo; i++) {
     tree.insert(Math.floor(Math.random() * 100));
   }
@@ -100,17 +100,49 @@ class BTree {
   }
 
   log() {
-    console.log(
-      JSON.stringify(
-        this,
-        function(key, val) {
-          if (key !== 'parent') return val;
-        },
-        2,
-      ),
-    );
+    // console.log(
+    //   JSON.stringify(
+    //     this,
+    //     function(key, val) {
+    //       if (key !== 'parent') return val;
+    //     },
+    //     2,
+    //   ),
+    // );
+    console.log(this.renderString().join('\n'))
 
     console.log('------------------');
+  }
+
+  renderString() {
+    const lines = []
+    let keys = this.keys.toString();
+    lines.push(keys)
+    if(this.childs.length === 0) {
+      return lines
+    }
+
+    let links = ''
+    this.childs.map((child) => {
+      const childLines = child.renderString()
+      links += "|" +' '.repeat(childLines[0].length + 2)
+      childLines.map((line,index) => {
+        if(lines[index+4])
+        lines[index + 4] += "   " + line
+        else lines[index+4] = line
+      })
+    })
+
+    lines[1] = ''
+    lines[2] = links;
+    lines[3] = ''
+
+    const maxLength = Math.max(...lines.map( l => l.length))
+    for(let i = 0; i< lines.length; i++) {
+      lines[i]+= ' '.repeat(maxLength - lines[i].length)
+    }
+
+    return lines
   }
 
   split() {
@@ -189,8 +221,8 @@ class BTree {
   }
 
   verify(min, max) {
-    console.log('verifying');
-    this.log();
+    // console.log('verifying');
+    //this.log();
     if (this.keys.length < this.degree - 1 || this.keys.length > this.degree * 2 - 1) {
       console.error('degree - 1 <= keys count < degree*2 - 1');
       return false;
@@ -338,14 +370,15 @@ class BTree {
         } else {
           console.log('both left and right sibling does not have enough key');
           // move a key to child to become median
+          //    2. 4
+          //  / |  \
+          // 1  3   5
           if (rightSibling) {
+          //    2.
+          //  /   |
+          // 1  |3 4 5|
             selectedChild.keys.push(this.keys[thisIndex]);
             this.keys.splice(thisIndex, 1);
-          } else {
-            selectedChild.keys.unshift(this.keys[thisIndex - 1]);
-            this.keys.splice(thisIndex - 1, 1);
-          }
-          if (rightSibling) {
             console.log('merge right sibling');
             rightSibling.keys.forEach((key) => {
               selectedChild.keys.push(key);
@@ -356,6 +389,11 @@ class BTree {
               selectedChild.childs.push(child);
             });
           } else if (leftSibling) {
+          //      4
+          //   /     \
+          // |1 2 3|  5
+            selectedChild.keys.unshift(this.keys[thisIndex - 1]);
+            this.keys.splice(thisIndex - 1, 1);
             console.log('merge left sibling');
             for (let i = leftSibling.keys.length - 1; i > -1; i--) {
               selectedChild.keys.unshift(leftSibling.keys[i]);
@@ -366,6 +404,9 @@ class BTree {
               leftSibling.childs[i].parent = selectedChild;
               selectedChild.childs.unshift(leftSibling.childs[i]);
             }
+          }
+          else {
+            throw 'something went wrong'
           }
 
           if (this.keys.length === 0) {
