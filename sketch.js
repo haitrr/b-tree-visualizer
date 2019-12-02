@@ -454,11 +454,14 @@ class BTree {
     this.keys.map((value, index) => {
       const valX = x + index * size;
       stroke(255);
+      strokeWeight(1);
       if (this === currentNode) {
         stroke('red');
+        strokeWeight(2)
       }
       square(valX, y, size);
       stroke(0);
+      strokeWeight(1)
       text(value, valX + size / 2, y + size / 2);
     });
 
