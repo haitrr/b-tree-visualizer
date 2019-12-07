@@ -7,15 +7,11 @@ let insertButton;
 let delayInput;
 let setDelayButton;
 let currentNode = null;
-let delay = 1000;
+let delay = 1000 ;
 let running = false;
 // eslint-disable-next-line no-unused-vars
 function setup() {
   tree = new BTree(2);
-  let insertTo = 22;
-  for (let i = 0; i < insertTo; i++) {
-    tree.insert(Math.floor(Math.random() * 100));
-  }
 
   createCanvas(windowWidth, windowHeight);
   background(0);
@@ -86,6 +82,7 @@ const insertButtonPressed = () => {
   if(running) return;
   const value = parseInt(insertInput.value());
   if (!Number.isNaN(value)) {
+    running = true;
     tree.insert(value);
     tree.verify();
   }
@@ -149,6 +146,7 @@ class BTree {
     if (this.keys.length !== this.degree * 2 - 1) {
       return;
     }
+    console.log('********* splitting current node ***********')
     const medianIndex = this.degree - 1;
     const leftChild = new BTree(this.degree, this);
     const rightChild = new BTree(this.degree, this);
@@ -173,9 +171,11 @@ class BTree {
     const medianKey = this.keys[medianIndex];
     const parent = this.parent;
     if (!parent) {
+      console.log('this node is root, make the new median root')
       this.keys = [medianKey];
       this.childs = [leftChild, rightChild];
     } else {
+      console.log('plug in the new child to the parent of current node')
       rightChild.parent = parent;
       leftChild.parent = parent;
       const childIndex = parent.childs.findIndex((c) => c == this);
@@ -188,21 +188,29 @@ class BTree {
         }
       }
       this.parent.keys.splice(i, 0, medianKey);
-
-      // if (parent.keys.length === this.degree * 2 - 1) {
-      //   parent.split();
-      // }
     }
+    console.log(`median key : ${medianKey}`)
+    console.log('left child')
+    leftChild.log();
+    console.log('right child')
+    rightChild.log();
+    console.log('********** done spliting ***************')
     return { medianKey, leftChild, rightChild };
   }
 
   insert(value) {
+    currentNode = this;
+    console.log(`***** insert key : ${this.key} in current node *******`)
+    this.log();
     if (this.keys.length === this.degree * 2 - 1) {
+      console.log('current node is already full')
       const { medianKey, rightChild, leftChild } = this.split();
       if (value > medianKey) {
-        rightChild.insert(value);
+        console.log('insert key in the right child')
+        setTimeout(() => rightChild.insert(value), delay);
       } else {
-        leftChild.insert(value);
+        console.log('insert key in the left child')
+        setTimeout(() => leftChild.insert(value), delay);
       }
     } else {
       let i = 0;
@@ -210,12 +218,16 @@ class BTree {
         i += 1;
       }
       if (this.childs[i]) {
-        this.childs[i].insert(value);
+        console.log('this node is not leaf, insert in to appropriate child')
+        setTimeout(() => this.childs[i].insert(value), delay);
       } else {
+        console.log('this node is leaf , insert key to current node ')
         this.keys.push(value);
         this.keys.sort(function(a, b) {
           return a - b;
         });
+        running = false;
+        console.log('****** done *********')
       }
     }
   }
